@@ -48,6 +48,20 @@ const MutationType = new GraphQLObjectType({
         return person;
       }
     },
+    updatePerson: {
+      type: PersonType,
+      args: {
+        id: { type: GraphQLID },
+        name: { type: GraphQLString },
+      },
+      resolve: function (_, { id, name }) {
+        const index = peopleData.findIndex((person) => person.id == id);
+        const person = { ...peopleData[index], name };
+
+        peopleData[index] = person;
+        return person;
+      }
+    }
   },
 });
 

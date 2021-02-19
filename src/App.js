@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { gql, useQuery, useMutation } from "@apollo/client";
 
 const ALL_PEOPLE = gql`
@@ -19,6 +19,15 @@ const ADD_PERSON = gql`
   }
 `;
 
+const UPDATE_PERSON = gql`
+  mutation UpdatePerson($id: ID, $name: String) {
+    updatePerson(id: $id, name: $name) {
+      id
+      name
+    }
+  }
+`;
+
 export default function App() {
   const [name, setName] = useState('');
   const {
@@ -28,17 +37,10 @@ export default function App() {
 
   const [addPerson] = useMutation(ADD_PERSON, {
     update: (cache, { data: { addPerson: addPersonData } }) => {
-      const peopleResult = cache.readQuery({ query: ALL_PEOPLE });
-
-      cache.writeQuery({
-        query: ALL_PEOPLE,
-        data: {
-          ...peopleResult,
-          people: [
-            ...peopleResult.people,
-            addPersonData,
-          ],
-        },
+      cache.modify({
+        fields: {
+          people: (existingPeople) => [...existingPeople, addPersonData]
+        }
       });
     },
   });
@@ -72,10 +74,30 @@ export default function App() {
       ) : (
         <ul>
           {data?.people.map(person => (
-            <li key={person.id}>{person.name}</li>
+            <li key={person.id}>{person.name} <EditName id={person.id} name={person.name} /> </li>
           ))}
         </ul>
       )}
     </main>
+  );
+}
+
+function EditName({ id, name }) {
+  const [newName, setNewName] = useState(name);
+  const [updatePerson] = useMutation(UPDATE_PERSON);
+
+  useEffect(() => {
+    setNewName(name);
+  }, [name]);
+
+  return (
+    <>
+      <input value={newName} onChange={(evt) => setNewName(evt.target.value)} />
+      <button
+        onClick={() => updatePerson({ variables: { id, name: newName }})}
+      >
+        Save
+      </button>
+    </>
   );
 }
